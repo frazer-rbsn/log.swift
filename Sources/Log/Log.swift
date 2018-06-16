@@ -119,7 +119,7 @@ public final class Log {
   
   private static func log(level : Level, message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
     guard enabledLevels[level, default: false] else { return }
-    queue.sync {
+    queue.async {
       let fileName = filePath.components(separatedBy: "/").last!
       let message = "\(timestampStringIfEnabled) \(emojiIfEnabled(for: level))[\(level.rawValue.uppercased())] \(fileName) \(lineNumber) \(functionName): \(message)"
       print(message)

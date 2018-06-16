@@ -1,6 +1,6 @@
 # Log.swift
 
-Simple *static* logging class in Swift, with an API based on Android's `Log`.  
+Be gone, `print()` statements! A simple *static* logging class in Swift, with an API based on Android's `Log`.  
 
 * Log output is asynchronous.
 * Configurable timestamps, emoji and output to log file.

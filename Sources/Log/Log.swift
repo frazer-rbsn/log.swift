@@ -18,6 +18,8 @@ public final class Log {
   private static let showTimeStamp = false    // Recommended setting: false for debugging, true for production logging
   private static let shouldLogToFile = false  // Recommended setting: false for debugging, true for production logging. (Set `logFileLocation` below!)
   
+  private static let logFileLocation : URL = URL(string: "")! // If you want to enable logging to a file, set the desired location here.
+  
   private enum Level : String { case verbose, debug, info, warning, error, fatal }
   
   private static let enabledLevels : [Level : Bool] = [.verbose: false,
@@ -83,8 +85,6 @@ public final class Log {
   // MARK: Log file
   
   private static let fileManager = FileManager.default
-  
-  private static let logFileLocation : URL = URL(string: "")! // TODO: If you want to enable logging to a file, set the desired location here.
   
   private static var logFileName : String {
     return "LogFile-\(Log.dateString).txt"

@@ -2,7 +2,9 @@
 
 [![Travis build status](https://travis-ci.org/frazer-rbsn/Log.swift.svg?branch=master)](https://travis-ci.org/frazer-rbsn/Log.swift)
 
-Be gone, `print()` statements! A simple *static* logging class in Swift, with an API based on Android's `Log`.  
+Be gone, `print()` statements! A simple *static* logging class in Swift, with an API based on Android's `Log`. 
+
+* prints timestamp, file name, line number and function name
 * easy configuration
 * emoji (optional)
 * output to log file -- please set `logFileLocation`

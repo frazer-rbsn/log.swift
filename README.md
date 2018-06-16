@@ -19,6 +19,16 @@ outputs:
 14:19:30 ❌ [ERROR] Foo.swift 32 buggyFunction(): A really bad thing happened!
 ```
 
+#### Log levels:
 
-No need to add this as a package dependency, I'd recommend just copying the file and customising it yourself.
-Think of it as a basic, batteries-included template for making your own logging class.
+```swift
+Log.v() // [VERBOSE]
+Log.d() // [DEBUG]
+Log.i() // [INFO]
+Log.w() // ⚠️ [WARNING]
+Log.e() // ❌ [ERROR]
+Log.f() // ☠️ [FATAL] (Calls fatalError() to crash the application/service.)
+```
+
+Instead of added Log.swift as a package dependency, I'd recommend just copying the file and customising it yourself.
+You can use it as a basic, batteries-included template for making your own logging class.

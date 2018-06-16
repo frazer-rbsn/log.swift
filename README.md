@@ -1,5 +1,7 @@
 # Log.swift
 
+[![Travis build status](https://travis-ci.org/frazer-rbsn/Log.swift.svg?branch=master)](https://travis-ci.org/frazer-rbsn/Log.swift)
+
 Be gone, `print()` statements! A simple *static* logging class in Swift, with an API based on Android's `Log`.  
 
 * Log output is asynchronous.

@@ -8,5 +8,3 @@ Simple *static* logging class in Swift, with an API based on Android's `Log`.
 
 No need to add this as a package dependency, I'd recommend just copying the file and customising it yourself.
 Think of it as a basic, batteries-included template for making your own logging class.
-
-- Frazer

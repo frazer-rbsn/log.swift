@@ -9,6 +9,8 @@ import Foundation
 
 public final class Log {
   
+  private init() {}
+  
   
   // MARK: Configuration
   

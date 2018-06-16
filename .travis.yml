@@ -3,7 +3,7 @@ osx_image: xcode9.3
 
 script:
   - swift package generate-xcodeproj
-  - xcodebuild -scheme Log -sdk macosx test
+  - xcodebuild -scheme Log-Package -sdk macosx test
 after_success: 
   - bash <(curl -s https://codecov.io/bash)
 notifications:

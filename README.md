@@ -16,7 +16,7 @@ Log.e("A really bad thing happened!")
 ```
 outputs:
 ```
-14:19:30 ❌ [ERROR] Foo.swift 32 buggyFunction(): A really bad thing happened!
+14:19:30 ❌ [ERROR] Foo.swift 67 buggyFunction(): A really bad thing happened!
 ```
 
 #### Log levels:

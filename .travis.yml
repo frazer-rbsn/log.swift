@@ -1,0 +1,10 @@
+os: osx
+osx_image: xcode9.3
+
+script:
+  - swift package generate-xcodeproj
+  - xcodebuild -scheme Log -sdk macosx test
+after_success: 
+  - bash <(curl -s https://codecov.io/bash)
+notifications:
+  email: false

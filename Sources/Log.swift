@@ -5,21 +5,34 @@
 //
 
 import Foundation
+import os
 
-
+/// A static class wrapper around `print()` and `os_log()` to make logging simple and quick.
 public final class Log {
   
   private init() {}
   
   
-  // MARK: Configuration
+  //
+  // MARK: - Configuration
+  //
   
-  private static let showEmoji = true         // Recommended setting: true,
-  private static let showTimeStamp = false    // Recommended setting: false for debugging, true for production logging
+  // MARK: Optional functionality
   
-  static var shouldLogToFile = false   // Recommended setting: false for debugging, true for production logging. (Set `logFileLocation` below!)
+  /// Emoji can be used for making certain log levels stand out.
+  public static var showEmoji = true          // Recommended setting: true.
   
-  static var logFileDirectory : URL = URL(string: "localhost")! // Dummy location - If you want to enable logging to a file, set the desired location here.
+  /// Show a timestamp of the local time on each log message.
+  public static var showTimeStamp = false     // Recommended setting: false for debugging, true for production logging.
+  
+  /// Output logs to a file.
+  public static var shouldLogToFile = false   // Recommended setting: false for debugging, true for production logging. (Set `logFileDirectory` below!)
+  
+  /// The directory in which the log file will be created.
+  public static var logFileDirectory : URL!   // If you want to enable logging to a file, set the desired location here.
+  
+  
+  // MARK: Levels
   
   enum Level : String { case verbose, debug, info, warning, error, fatal }
   
@@ -31,10 +44,32 @@ public final class Log {
                                                .error: true,
                                                .fatal: true]
   
+  
+  // MARK: Queue
+  
   /// The default queue for logs to be printed on. Also used for creation of and writing to log files.
   /// Default value is a new Serial DispatchQueue.
   public static var queue = DispatchQueue(label: "LogQueue")
   
+  
+  // MARK: OSLog
+  
+  /// Uses OS_Log so that logs will appear in the Console app, even when you're not debugging.
+  /// Default value is `false`. If this is `false`, logs are output using `print()`.
+  public static var useOSLog = false
+  
+  /// Set this to your identifer in reverse DNS notation, e.g. "com.yourcompany.yourappname"
+  private static var osLogSubsystemName = "com.yourcompany.yourappname"
+  
+  /// Set this category which will be used for filtering your logs in the Console app.
+  private static var osLogCategory = "categoryname"
+  
+  private static var osLog = OSLog(subsystem: osLogSubsystemName, category: osLogCategory)
+  
+  
+  //
+  // MARK: - Private functions
+  //
   
   // MARK: Emoji
   
@@ -97,11 +132,17 @@ public final class Log {
   }
   
   static var logFilePath : String {
+    guard logFileDirectory != nil else { return "" }
     return logFileDirectory.appendingPathComponent(logFileName, isDirectory: false).path
   }
   
   private static func logToFile(_ message : String) {
     guard shouldLogToFile else { return }
+    guard logFileDirectory != nil else {
+      Log.e("Log.swift: `Log.logFileDirectory` is not set, please set this to enable output of logs to a file. Setting `shouldLogToFile` to `false` to prevent repeats of this error...")
+      shouldLogToFile = false
+      return
+    }
     let messageWithReturn = "\(message)\n"
     guard let messageData = messageWithReturn.data(using: .utf8) else { return }
     if !fileManager.fileExists(atPath: logFilePath) {
@@ -129,23 +170,38 @@ public final class Log {
   }
   
   
-  // MARK: Internal log function
+  // MARK: Main log function
 
   private static func log(level : Level, message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, queue : DispatchQueue = queue) {
     guard enabledLevels[level, default: false] else { return }
     queue.async {
       let fileName = filePath.components(separatedBy: "/").last!
-      let message = "\(timestampStringIfEnabled) \(emojiIfEnabled(for: level))[\(level.rawValue.uppercased())] \(fileName) \(lineNumber) \(functionName): \(message)"
-      print(message)
-      logToFile(message)
+      let printMessage = "\(timestampStringIfEnabled) \(emojiIfEnabled(for: level))[\(level.rawValue.uppercased())] \(fileName) \(lineNumber) \(functionName): \(message)"
+      if useOSLog {
+        os_log("%@[%@] %@ %d %@: %@", log: osLog, type: osLogType(for: level), emojiIfEnabled(for: level), level.rawValue.uppercased(), fileName, lineNumber, functionName, message)
+      } else {
+        print(printMessage)
+      }
+      logToFile(printMessage)
       if level == .fatal {
         fatalError(message)
       }
     }
   }
   
+  private static func osLogType(for logLevel : Level) -> OSLogType {
+    switch logLevel {
+    case .verbose: return OSLogType.default
+    case .info, .warning: return OSLogType.info
+    case .debug: return OSLogType.debug
+    case .error, .fatal: return OSLogType.error
+    }
+  }
   
-  // MARK: Public log functions
+  
+  //
+  // MARK: - Public log functions
+  //
   
   /// **VERBOSE**
   /// Use for the most insignificant of messages that should only be logged if we desire to see a very detailed trace of application operation.

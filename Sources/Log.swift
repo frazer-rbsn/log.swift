@@ -101,7 +101,12 @@ public final class Log {
     if !fileManager.fileExists(atPath: logFilePath) {
       var isDir : ObjCBool = true
       if !fileManager.fileExists(atPath: logFileLocation.path, isDirectory: &isDir) {
-        try! fileManager.createDirectory(atPath: logFileLocation.path, withIntermediateDirectories: true, attributes: nil)
+        do {
+          try fileManager.createDirectory(atPath: logFileLocation.path, withIntermediateDirectories: true, attributes: nil)
+        } catch {
+          print("[ERROR] Log.swift: Error when creating log directory: \(error.localizedDescription)")
+          return
+        }
       }
       let fileCreated = fileManager.createFile(atPath: logFilePath, contents: messageData, attributes: nil)
       if fileCreated { Log.i("Log file created successfully in location: \(logFilePath)") }

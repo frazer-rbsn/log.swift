@@ -79,6 +79,7 @@ final class LogTests: XCTestCase {
     let queue = DispatchQueue(label: #function)
     Log.v("testV", queue: queue)
     queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    XCTAssert(Log.shouldLogToFile)
     XCTAssertThrowsError(try String.init(contentsOfFile: Log.logFilePath, encoding: .utf8))
   }
   
@@ -88,6 +89,7 @@ final class LogTests: XCTestCase {
     let queue = DispatchQueue(label: #function)
     Log.e("testE", queue: queue)
     queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    XCTAssertFalse(Log.shouldLogToFile)
     XCTAssertThrowsError(try String.init(contentsOfFile: Log.logFilePath, encoding: .utf8))
   }
   
@@ -97,6 +99,7 @@ final class LogTests: XCTestCase {
     let queue = DispatchQueue(label: #function)
     Log.e("testE", queue: queue)
     queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    XCTAssertFalse(Log.shouldLogToFile)
     XCTAssertThrowsError(try String.init(contentsOfFile: Log.logFilePath, encoding: .utf8))
   }
   

@@ -20,16 +20,20 @@ public final class Log {
   // MARK: Optional functionality
   
   /// Emoji can be used for making certain log levels stand out.
-  public static var showEmoji = true          // Recommended setting: true.
+  /// - Recommended setting: true.
+  public static var showEmoji = true
   
   /// Show a timestamp of the local time on each log message.
-  public static var showTimeStamp = false     // Recommended setting: false for debugging, true for production logging.
+  /// - Recommended setting: false for debugging, true for production logging.
+  public static var showTimeStamp = false
   
-  /// Output logs to a file.
-  public static var shouldLogToFile = false   // Recommended setting: false for debugging, true for production logging. (Set `logFileDirectory` below!)
+  /// Output logs to a file if `logFileDirectory` is set to a valid URL.
+  /// - Recommended setting: false for debugging, true for production logging.
+  public static var shouldLogToFile = false
   
   /// The directory in which the log file will be created.
-  public static var logFileDirectory : URL!   // If you want to enable logging to a file, set the desired location here.
+  /// If you want to enable logging to a file, set the desired location here.
+  public static var logFileDirectory : URL!
   
   
   // MARK: Levels
@@ -55,7 +59,8 @@ public final class Log {
   // MARK: OSLog
   
   /// Uses OS_Log so that logs will appear in the Console app, even when you're not debugging.
-  /// Default value is `false`. If this is `false`, logs are output using `print()`.
+  /// Default value is `false`.
+  /// - NOTE: If this is `false`, logs are output using `print()`.
   public static var useOSLog = false
   
   /// Set this to your identifer in reverse DNS notation, e.g. "com.yourcompany.yourappname"
@@ -136,11 +141,16 @@ public final class Log {
     return logFileDirectory.appendingPathComponent(logFileName, isDirectory: false).path
   }
   
+  private static func disableLoggingToFileBecauseOfError() {
+    shouldLogToFile = false
+    Log.w("`shouldLogToFile` has now been set to `false` due to an error.")
+  }
+  
   private static func logToFile(_ message : String) {
     guard shouldLogToFile else { return }
     guard logFileDirectory != nil else {
-      Log.e("Log.swift: `Log.logFileDirectory` is not set, please set this to enable output of logs to a file. Setting `shouldLogToFile` to `false` to prevent repeats of this error...")
-      shouldLogToFile = false
+      disableLoggingToFileBecauseOfError()
+      Log.e("`Log.logFileDirectory` is not set, please set this to enable output of logs to a file.")
       return
     }
     let messageWithReturn = "\(message)\n"
@@ -151,16 +161,22 @@ public final class Log {
         do {
           try fileManager.createDirectory(atPath: logFileDirectory.path, withIntermediateDirectories: true, attributes: nil)
         } catch {
-          print("[ERROR] Log.swift: Error when creating log directory: \(error.localizedDescription)")
+          disableLoggingToFileBecauseOfError()
+          Log.e("Error when creating log file directory: \(error.localizedDescription)")
           return
         }
       }
       let fileCreated = fileManager.createFile(atPath: logFilePath, contents: messageData, attributes: nil)
-      if fileCreated { Log.i("Log file created successfully in location: \(logFilePath)") }
-      else { print("[ERROR] Log.swift: Log file creation failed. Tried to create file at path: \(logFilePath)") }
+      if fileCreated {
+        Log.i("Log file created successfully. Path: \(logFilePath)")
+      } else {
+        disableLoggingToFileBecauseOfError()
+        Log.e("Log file creation failed. Tried to create file at path: \(logFilePath)")
+      }
     } else {
       guard let fileHandle = FileHandle.init(forUpdatingAtPath: logFilePath) else {
-        print("[ERROR] Log.swift: FileHandle init failed. Log file path: \(logFilePath)")
+        disableLoggingToFileBecauseOfError()
+        Log.e("FileHandle init failed. Log file path: \(logFilePath)")
         return
       }
       fileHandle.seekToEndOfFile()

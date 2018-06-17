@@ -31,6 +31,3 @@ Log.w() // ⚠️ [WARNING]
 Log.e() // ❌ [ERROR]
 Log.f() // ☠️ [FATAL] (Calls fatalError() to crash the application/service.)
 ```
-
-Instead of adding Log.swift as a package dependency, I'd recommend just copying the file and customising it yourself.
-You can use it as a basic, batteries-included template for making your own logging class.

@@ -33,7 +33,7 @@ public final class Log {
   
   /// The directory in which the log file will be created.
   /// If you want to enable logging to a file, set the desired location here.
-  public static var logFileDirectory : URL!
+  public static var logFileDirectory : URL?
   
   
   // MARK: Levels
@@ -142,7 +142,7 @@ public final class Log {
   }
   
   static var logFilePath : String {
-    guard logFileDirectory != nil else { return "" }
+    guard let logFileDirectory = logFileDirectory else { return "" }
     return logFileDirectory.appendingPathComponent(logFileName, isDirectory: false).path
   }
   

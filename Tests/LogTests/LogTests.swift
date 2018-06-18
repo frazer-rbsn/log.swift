@@ -13,7 +13,9 @@ final class LogTests: XCTestCase {
   override func setUp() {
     super.setUp()
     Log.shouldLogToFile = true
-    Log.useOSLog = false
+    if #available(macOS 10.12, *) {
+      Log.setUseOSLogDisabled()
+    }
     let url = try! FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
     Log.logFileDirectory = url.appendingPathComponent("Log.swift/logs")
   }
@@ -103,8 +105,9 @@ final class LogTests: XCTestCase {
     XCTAssertThrowsError(try String.init(contentsOfFile: Log.logFilePath, encoding: .utf8))
   }
   
+  @available(macOS 10.12, *)
   func testOSLog() {
-    Log.useOSLog = true
+    Log.setUseOSLogEnabled(osLogSubsystemName: "swift.Log", category: "TEST")
     Log.enabledLevels[.error] = true
     let queue = DispatchQueue(label: #function)
     Log.e("testE", queue: queue)
@@ -125,6 +128,5 @@ final class LogTests: XCTestCase {
     ("testLogWhenLevelDisabled", testLogWhenLevelDisabled),
     ("testLogToFileDisabled", testLogToFileDisabled),
     ("testLoggingLocationNil", testLoggingLocationNil),
-    ("testOSLog", testOSLog),
     ]
 }

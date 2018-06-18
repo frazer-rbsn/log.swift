@@ -58,18 +58,23 @@ public final class Log {
   
   // MARK: OSLog
   
-  /// Uses OS_Log so that logs will appear in the Console app, even when you're not debugging.
-  /// Default value is `false`.
-  /// - NOTE: If this is `false`, logs are output using `print()`.
-  public static var useOSLog = false
+  /// By default, OS_Log is disabled and `print()` is used for log output. Call this function to use OS_Log so that
+  /// logs will appear in the Console app, even when you're not debugging.
+  /// - parameter osLogSubsystemName:  Set this to your identifer in reverse DNS notation, e.g. "com.yourcompany.yourappname"
+  /// - parameter category: Set this category which will be used for filtering your logs in the Console app.
+  @available(macOS 10.12, *)
+  public static func setUseOSLogEnabled(osLogSubsystemName : String, category : String) {
+    osLog = OSLog(subsystem: osLogSubsystemName, category: category)
+  }
   
-  /// Set this to your identifer in reverse DNS notation, e.g. "com.yourcompany.yourappname"
-  private static var osLogSubsystemName = "com.yourcompany.yourappname"
+  /// Disables OS_Log output, uses `print()` instead.
+  @available(macOS 10.12, *)
+  public static func setUseOSLogDisabled() {
+    osLog = nil
+  }
   
-  /// Set this category which will be used for filtering your logs in the Console app.
-  private static var osLogCategory = "categoryname"
-  
-  private static var osLog = OSLog(subsystem: osLogSubsystemName, category: osLogCategory)
+  @available(macOS 10.12, *)
+  private static var osLog : OSLog?
   
   
   //
@@ -193,7 +198,7 @@ public final class Log {
     queue.async {
       let fileName = filePath.components(separatedBy: "/").last!
       let printMessage = "\(timestampStringIfEnabled) \(emojiIfEnabled(for: level))[\(level.rawValue.uppercased())] \(fileName) \(lineNumber) \(functionName): \(message)"
-      if useOSLog {
+      if #available(macOS 10.12, *), let osLog = osLog {
         os_log("%@[%@] %@ %d %@: %@", log: osLog, type: osLogType(for: level), emojiIfEnabled(for: level), level.rawValue.uppercased(), fileName, lineNumber, functionName, message)
       } else {
         print(printMessage)
@@ -205,6 +210,7 @@ public final class Log {
     }
   }
   
+  @available(macOS 10.12, *)
   private static func osLogType(for logLevel : Level) -> OSLogType {
     switch logLevel {
     case .verbose: return OSLogType.default

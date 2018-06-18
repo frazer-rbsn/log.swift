@@ -4,11 +4,12 @@
 
 Be gone, `print()` statements! A simple *static* logging class in Swift, with an API based on Android's `Log`. 
 
-* prints timestamp, file name, line number and function name
 * easy configuration
+* prints file name, line number and function name
+* simple timestamps (optional)
 * emoji (optional)
-* output to log file -- please set `logFileLocation`
-
+* output to log file -- please set `logFileLocation` and `shouldLogToFile` to `true`
+* can output using `print()` or `os_log()` (macOS 10.12 or newer only)
 
 #### How to use:
 Log is a static class - it is not instantiable and is intended to be accessible from anywhere.

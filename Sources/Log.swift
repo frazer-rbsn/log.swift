@@ -5,9 +5,9 @@
 //
 
 import Foundation
-import os
+import os.log
 
-/// A static class wrapper around `print()` and `os_log()` to make logging simple and quick.
+/// A static class wrapper around `print()` and `os_log()` for simple logging.
 public final class Log {
   
   private init() {}
@@ -20,15 +20,15 @@ public final class Log {
   // MARK: Optional functionality
   
   /// Emoji can be used for making certain log levels stand out.
-  /// - Recommended setting: true.
+  /// - Recommended setting: `true`.
   public static var showEmoji = true
   
   /// Show a timestamp of the local time on each log message.
-  /// - Recommended setting: false for debugging, true for production logging.
+  /// - Recommended setting: `false` for debugging, `true` for production logging.
   public static var showTimeStamp = false
   
   /// Output logs to a file if `logFileDirectory` is set to a valid URL.
-  /// - Recommended setting: false for debugging, true for production logging.
+  /// - Recommended setting: `false` for debugging, `true` for production logging.
   public static var shouldLogToFile = false
   
   /// The directory in which the log file will be created.
@@ -199,8 +199,8 @@ public final class Log {
   
   
   // MARK: Main log function
-
-  private static func log(level : Level, message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, queue : DispatchQueue = queue) {
+  
+  private static func log(level : Level, message : String, functionName : String, filePath : String, lineNumber : Int, queue : DispatchQueue) {
     guard enabledLevels[level, default: false] else { return }
     queue.async {
       let fileName = filePath.components(separatedBy: "/").last!
@@ -233,25 +233,29 @@ public final class Log {
   //
   
   /// **VERBOSE**
-  /// Use for the most insignificant of messages that should only be logged if we desire to see a very detailed trace of application operation.
+  /// Use for the most insignificant of messages that should only be logged if we desire to see a very detailed
+  /// trace of application operation.
   public static func v(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, queue : DispatchQueue = queue) {
     log(level: .verbose, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, queue: queue)
   }
   
   /// **DEBUG**
-  /// Debugging information when diagnosing an issue. These logs are intended to be removed when problem is confirmed as fixed and tested.
+  /// Debugging information when diagnosing an issue. These logs are normally intended to be removed when the problem
+  /// is confirmed as fixed and tested.
   public static func d(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, queue : DispatchQueue = queue) {
     log(level: .debug, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, queue: queue)
   }
   
   /// **INFO**
-  /// Useful information, e.g. service start-up, configuration etc. Use sparingly and only when they would be useful for analysing crash/error reports.
+  /// Useful information, e.g. service start-up, configuration etc. Use sparingly and only when they would be useful
+  /// for analysing crash/error reports.
   public static func i(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, queue : DispatchQueue = queue) {
     log(level: .info, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, queue: queue)
   }
   
   /// **WARNING**
-  /// Warnings about odd/unexpected behaviour but are easily recoverable and probably shouldn't be notified to the user but notified to the team.
+  /// Warnings about odd/unexpected behaviour but are easily recoverable and probably shouldn't be notified to the
+  /// user but notified to the team.
   /// Also for uses of deprecated APIs or incorrect uses of APIs.
   /// Other examples: value that is expected to be positive was actually negative, so it was clamped to zero, etc.
   public static func w(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, queue : DispatchQueue = queue) {

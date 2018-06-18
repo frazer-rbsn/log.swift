@@ -151,16 +151,16 @@ public final class Log {
     Log.w("`shouldLogToFile` has now been set to `false` due to an error.")
   }
   
-  private static func logToFile(_ message : String) {
-    guard shouldLogToFile else { return }
-    guard logFileDirectory != nil else {
-      disableLoggingToFileBecauseOfError()
-      Log.e("`Log.logFileDirectory` is not set, please set this to enable output of logs to a file.")
-      return
-    }
-    let messageWithReturn = "\(message)\n"
-    guard let messageData = messageWithReturn.data(using: .utf8) else { return }
-    if !fileManager.fileExists(atPath: logFilePath) {
+  private static func ensureLogFileExists(messageData : Data, onExists : () -> ()) {
+    if fileManager.fileExists(atPath: logFilePath) {
+      onExists()
+    } else {
+      guard let logFileDirectory = logFileDirectory else {
+        disableLoggingToFileBecauseOfError()
+        Log.e("`Log.logFileDirectory` is not set, please set this to enable output of logs to a file.")
+        return
+      }
+      // If the logfile doesn't exist, we need to ensure that the specified directories are created before creating the file.
       var isDir : ObjCBool = true
       if !fileManager.fileExists(atPath: logFileDirectory.path, isDirectory: &isDir) {
         do {
@@ -178,7 +178,14 @@ public final class Log {
         disableLoggingToFileBecauseOfError()
         Log.e("Log file creation failed. Tried to create file at path: \(logFilePath)")
       }
-    } else {
+    }
+  }
+  
+  private static func logToFile(_ message : String) {
+    guard shouldLogToFile else { return }
+    let messageWithReturn = "\(message)\n"
+    guard let messageData = messageWithReturn.data(using: .utf8) else { return }
+    ensureLogFileExists(messageData: messageData, onExists: {
       guard let fileHandle = FileHandle.init(forUpdatingAtPath: logFilePath) else {
         disableLoggingToFileBecauseOfError()
         Log.e("FileHandle init failed. Log file path: \(logFilePath)")
@@ -187,7 +194,7 @@ public final class Log {
       fileHandle.seekToEndOfFile()
       fileHandle.write(messageData)
       fileHandle.closeFile()
-    }
+    })
   }
   
   

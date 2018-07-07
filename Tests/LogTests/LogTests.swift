@@ -4,6 +4,8 @@ import XCTest
 
 final class LogTests: XCTestCase {
   
+  private var log = Log()
+  
   // Called once before all tests are run
   override class func setUp() {
     super.setUp()
@@ -12,18 +14,19 @@ final class LogTests: XCTestCase {
   // Called before every test
   override func setUp() {
     super.setUp()
-    Log.default.shouldLogToFile = true
+    self.log = Log()
+    log.shouldLogToFile = true
     if #available(macOS 10.12, *) {
-      Log.default.setUseOSLogDisabled()
+      log.setUseOSLogDisabled()
     }
     let url = try! FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-    Log.default.logFileDirectory = url.appendingPathComponent("Log.swift/logs")
+    log.logFileDirectory = url.appendingPathComponent("Log.swift/logs")
   }
   
   // Called after every test
   override func tearDown() {
     super.tearDown()
-    guard let logFileDirectory = Log.default.logFileDirectory else { return }
+    guard let logFileDirectory = log.logFileDirectory else { return }
     print("Removing test log file...")
     try? FileManager.default.removeItem(atPath: logFileDirectory.path)
   }
@@ -31,108 +34,80 @@ final class LogTests: XCTestCase {
   
   // MARK: - Tests
   
-  func testV() {
-    Log.default.enabledLevels[.verbose] = true
-    Log.v("testV")
-    let logFileString = try! String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8)
-    XCTAssert(logFileString.contains("\(#function): testV"))
+  func testLogFunctions() {
+    let queue = DispatchQueue(label: #function)
+    logFunction(level: .verbose, queue: queue) { log.v(Log.Level.verbose.rawValue, logFileWriteQueue: queue) }
+    logFunction(level: .debug, queue: queue) { log.d(Log.Level.debug.rawValue, logFileWriteQueue: queue) }
+    logFunction(level: .info, queue: queue) { log.i(Log.Level.info.rawValue, logFileWriteQueue: queue) }
+    logFunction(level: .warning, queue: queue) { log.w(Log.Level.warning.rawValue, logFileWriteQueue: queue) }
+    logFunction(level: .error, queue: queue) { log.e(Log.Level.error.rawValue, logFileWriteQueue: queue) }
   }
   
-  func testD() {
-    Log.default.enabledLevels[.debug] = true
-    Log.d("testD")
-    let logFileString = try! String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8)
-    XCTAssert(logFileString.contains("\(#function): testD"))
-  }
-  
-  func testI() {
-    Log.default.enabledLevels[.info] = true
-    Log.i("testI")
-    let logFileString = try! String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8)
-    XCTAssert(logFileString.contains("\(#function): testI"))
-  }
-  
-  func testW() {
-    Log.default.enabledLevels[.warning] = true
-    Log.w("testW")
-    let logFileString = try! String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8)
-    XCTAssert(logFileString.contains("\(#function): testW"))
-  }
-  
-  func testE() {
-    Log.default.enabledLevels[.error] = true
-    Log.e("testE")
-    let logFileString = try! String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8)
-    XCTAssert(logFileString.contains("\(#function): testE"))
+  func logFunction(level : Log.Level, queue : DispatchQueue, function : () -> ()) {
+    log.enabledLevels[level] = true
+    function()
+    queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    let logFileString = try! String.init(contentsOfFile: log.logFilePath, encoding: .utf8)
+    XCTAssert(logFileString.contains(": \(level.rawValue)"))
+    tearDown()
   }
   
   func testLogWhenLevelDisabled() {
-    Log.default.enabledLevels[.verbose] = false
-    Log.v("testV")
-    XCTAssert(Log.default.shouldLogToFile)
-    XCTAssertThrowsError(try String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8))
+    log.enabledLevels[.verbose] = false
+    let queue = DispatchQueue(label: #function)
+    log.v("testV", logFileWriteQueue: queue)
+    queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    XCTAssert(log.shouldLogToFile)
+    XCTAssertThrowsError(try String.init(contentsOfFile: log.logFilePath, encoding: .utf8))
   }
   
   func testLogToFileDisabled() {
-    Log.default.showCurrentThread = true
-    Log.default.shouldLogToFile = false
-    Log.default.enabledLevels[.error] = true
-    Log.e("testE")
-    XCTAssertFalse(Log.default.shouldLogToFile)
-    XCTAssertThrowsError(try String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8))
+    log.shouldLogToFile = false
+    log.enabledLevels[.error] = true
+    let queue = DispatchQueue(label: #function)
+    log.e("testE", logFileWriteQueue: queue)
+    queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    XCTAssertFalse(log.shouldLogToFile)
+    XCTAssertThrowsError(try String.init(contentsOfFile: log.logFilePath, encoding: .utf8))
   }
   
   func testLoggingLocationNil() {
-    Log.default.logFileDirectory = nil
-    Log.default.enabledLevels[.error] = true
-    Log.e("testE")
-    XCTAssertFalse(Log.default.shouldLogToFile)
-    XCTAssertThrowsError(try String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8))
+    log.logFileDirectory = nil
+    log.enabledLevels[.error] = true
+    let queue = DispatchQueue(label: #function)
+    log.e("testE", logFileWriteQueue: queue)
+    queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    XCTAssertFalse(log.shouldLogToFile)
+    XCTAssertThrowsError(try String.init(contentsOfFile: log.logFilePath, encoding: .utf8))
   }
   
   func testLogBackgroundThread() {
-    Log.default.showCurrentThread = true
-    Log.default.shouldLogToFile = false
-    Log.default.enabledLevels[.error] = true
+    log.showCurrentThread = true
+    log.shouldLogToFile = false
+    log.enabledLevels[.error] = true
     let queue = DispatchQueue(label: "Banana", qos: .utility, attributes: [])
     queue.async {
-      Log.e("testE")
-    }
-    queue.sync {}
-  }
-  
-  func testCreateNewLog() {
-    let newLog = Log()
-    newLog.showCurrentThread = true
-    newLog.shouldLogToFile = false
-    newLog.enabledLevels[.error] = true
-    let queue = DispatchQueue(label: "Banana", qos: .utility, attributes: [])
-    queue.async {
-      newLog.e("testE")
+      self.log.e("testE")
     }
     queue.sync {}
   }
   
   @available(macOS 10.12, *)
   func testOSLog() {
-    Log.default.setUseOSLogEnabled(osLogSubsystemName: "swift.Log", category: "TEST")
-    Log.default.enabledLevels[.error] = true
-    Log.e("testE")
-    let logFileString = try! String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8)
-    XCTAssert(logFileString.contains("\(#function): testE"))
+    log.setUseOSLogEnabled(osLogSubsystemName: "swift.Log", category: "TEST")
+    let queue = DispatchQueue(label: #function)
+    logFunction(level: .error, queue: queue) { log.e(Log.Level.error.rawValue, logFileWriteQueue: queue) }
   }
   
   
   // MARK: - Linux compatibility
   
   static var allTests = [
-    ("testV", testV),
-    ("testD", testD),
-    ("testI", testI),
-    ("testW", testW),
-    ("testE", testE),
+    ("testLogFunctions", testLogFunctions),
     ("testLogWhenLevelDisabled", testLogWhenLevelDisabled),
     ("testLogToFileDisabled", testLogToFileDisabled),
     ("testLoggingLocationNil", testLoggingLocationNil),
+    ("testLogBackgroundThread", testLogBackgroundThread)
     ]
 }
+

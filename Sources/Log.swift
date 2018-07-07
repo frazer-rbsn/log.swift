@@ -168,8 +168,6 @@ public final class Log {
   
   private let fileManager = FileManager.default
   
-  private let fileWriteQueue = DispatchQueue(label: "Log.swift.fileWriteQueue")
-  
   private func ensureLogFileExists(messageData : Data, onExists : () -> ()) {
     if fileManager.fileExists(atPath: logFilePath) {
       onExists()
@@ -205,16 +203,17 @@ public final class Log {
     Log.w("`shouldLogToFile` has now been set to `false` due to an error.")
   }
   
-  private func logToFile(_ message : String) {
+  private let defaultLogFileWriteQueue = DispatchQueue(label: "Log.swift.fileWriteQueue")
+  
+  private func logToFile(_ message : String, fileWriteQueue : DispatchQueue) {
     guard shouldLogToFile else { return }
-    let q = DispatchQueue(label: "Log.swift.fileWriteQueue")
-    q.sync {
+    fileWriteQueue.async {
       let messageWithReturn = "\(message)\n"
       guard let messageData = messageWithReturn.data(using: .utf8) else { return }
-      ensureLogFileExists(messageData: messageData, onExists: {
-        guard let fileHandle = FileHandle.init(forUpdatingAtPath: logFilePath) else {
-          disableLoggingToFileBecauseOfError()
-          Log.e("FileHandle init failed. Log file path: \(logFilePath)")
+      self.ensureLogFileExists(messageData: messageData, onExists: {
+        guard let fileHandle = FileHandle.init(forUpdatingAtPath: self.logFilePath) else {
+          self.disableLoggingToFileBecauseOfError()
+          Log.e("FileHandle init failed. Log file path: \(self.logFilePath)")
           return
         }
         fileHandle.seekToEndOfFile()
@@ -227,7 +226,7 @@ public final class Log {
   
   // MARK: Main log function
   
-  private func log(level : Level, message : String, functionName : String, filePath : String, lineNumber : Int) {
+  private func log(level : Level, message : String, functionName : String, filePath : String, lineNumber : Int, logFileWriteQueue : DispatchQueue?) {
     guard enabledLevels[level, default: false] else { return }
     let fileName = filePath.components(separatedBy: "/").last!
     let printMessage = "\(timestampStringIfEnabled) \(emojiIfEnabled(for: level))[\(level.rawValue.uppercased())]\(currentThreadNameIfEnabled) \(fileName) \(lineNumber) \(functionName): \(message)"
@@ -236,7 +235,7 @@ public final class Log {
     } else {
       print(printMessage)
     }
-    logToFile(printMessage)
+    logToFile(printMessage, fileWriteQueue: logFileWriteQueue ?? defaultLogFileWriteQueue)
     if level == .fatal {
       fatalError(message)
     }
@@ -260,43 +259,43 @@ public final class Log {
   /// **VERBOSE**
   /// Use for the most insignificant of messages that should only be logged if we desire to see a very detailed
   /// trace of application operation.
-  public func v(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
-    log(level: .verbose, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
+  public func v(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) {
+    log(level: .verbose, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, logFileWriteQueue: logFileWriteQueue)
   }
   
   /// **VERBOSE**
   /// Use for the most insignificant of messages that should only be logged if we desire to see a very detailed
   /// trace of application operation.
-  public static func v(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
-    self.default.log(level: .verbose, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
+  public static func v(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) {
+    self.default.log(level: .verbose, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, logFileWriteQueue: logFileWriteQueue)
   }
   
   /// **DEBUG**
   /// Debugging information when diagnosing an issue. These logs are normally intended to be removed when the problem
   /// is confirmed as fixed and tested.
-  public func d(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
-    log(level: .debug, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
+  public func d(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) {
+    log(level: .debug, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, logFileWriteQueue: logFileWriteQueue)
   }
   
   /// **DEBUG**
   /// Debugging information when diagnosing an issue. These logs are normally intended to be removed when the problem
   /// is confirmed as fixed and tested.
-  public static func d(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
-    self.default.log(level: .debug, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
+  public static func d(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) {
+    self.default.log(level: .debug, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, logFileWriteQueue: logFileWriteQueue)
   }
   
   /// **INFO**
   /// Useful information, e.g. service start-up, configuration etc. Use sparingly and only when they would be useful
   /// for analysing crash/error reports.
-  public func i(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
-    log(level: .info, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
+  public func i(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) {
+    log(level: .info, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, logFileWriteQueue: logFileWriteQueue)
   }
   
   /// **INFO**
   /// Useful information, e.g. service start-up, configuration etc. Use sparingly and only when they would be useful
   /// for analysing crash/error reports.
-  public static func i(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
-    self.default.log(level: .info, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
+  public static func i(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) {
+    self.default.log(level: .info, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, logFileWriteQueue: logFileWriteQueue)
   }
   
   /// **WARNING**
@@ -304,8 +303,8 @@ public final class Log {
   /// user but notified to the team.
   /// Also for uses of deprecated APIs or incorrect uses of APIs.
   /// Other examples: value that is expected to be positive was actually negative, so it was clamped to zero, etc.
-  public func w(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
-    log(level: .warning, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
+  public func w(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) {
+    log(level: .warning, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, logFileWriteQueue: logFileWriteQueue)
   }
   
   /// **WARNING**
@@ -313,39 +312,39 @@ public final class Log {
   /// user but notified to the team.
   /// Also for uses of deprecated APIs or incorrect uses of APIs.
   /// Other examples: value that is expected to be positive was actually negative, so it was clamped to zero, etc.
-  public static func w(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
-    self.default.log(level: .warning, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
+  public static func w(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) {
+    self.default.log(level: .warning, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, logFileWriteQueue: logFileWriteQueue)
   }
   
   /// **ERROR**
   /// Errors that mean an operation has failed and we need to cancel it but keep the application or service running.
   /// Usually need user intervention or notification.
   /// Support and development teams should investigate.
-  public func e(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
-    log(level: .error, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
+  public func e(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) {
+    log(level: .error, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, logFileWriteQueue: logFileWriteQueue)
   }
   
   /// **ERROR**
   /// Errors that mean an operation has failed and we need to cancel it but keep the application or service running.
   /// Usually need user intervention or notification.
   /// Support and development teams should investigate.
-  public static func e(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
-    self.default.log(level: .error, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
+  public static func e(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) {
+    self.default.log(level: .error, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, logFileWriteQueue: logFileWriteQueue)
   }
   
   /// **FATAL**
   /// Catastrophic failures that mean we need to force-crash the application/service immediately.
   /// Use only when we absolutely cannot continue execution or there is potential for data loss or corruption.
   /// Requires urgent investigation from support and development teams.
-  public func f(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
-    log(level: .fatal, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
+  public func f(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) {
+    log(level: .fatal, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, logFileWriteQueue: logFileWriteQueue)
   }
   
   /// **FATAL**
   /// Catastrophic failures that mean we need to force-crash the application/service immediately.
   /// Use only when we absolutely cannot continue execution or there is potential for data loss or corruption.
   /// Requires urgent investigation from support and development teams.
-  public static func f(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
-    self.default.log(level: .fatal, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
+  public static func f(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) {
+    self.default.log(level: .fatal, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, logFileWriteQueue: logFileWriteQueue)
   }
 }

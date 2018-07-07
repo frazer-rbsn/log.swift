@@ -27,6 +27,10 @@ public final class Log {
   /// - Recommended setting: `false` for debugging, `true` for production logging.
   public static var showTimeStamp = false
   
+  /// Show current thread on each log message.
+  /// - Recommended setting: `true` for debugging, `false` for production logging.
+  public static var showCurrentThread = true
+  
   /// Output logs to a file if `logFileDirectory` is set to a valid URL.
   /// - Recommended setting: `false` for debugging, `true` for production logging.
   public static var shouldLogToFile = false
@@ -47,14 +51,6 @@ public final class Log {
                                                .warning: true,
                                                .error: true,
                                                .fatal: true]
-  
-  
-  // MARK: Queue
-  
-  /// The default queue for logs to be printed on. Also used for creation of and writing to log files.
-  /// Default value is a new Serial DispatchQueue.
-  public static var queue = DispatchQueue(label: "LogQueue")
-  
   
   // MARK: OSLog
   
@@ -132,6 +128,12 @@ public final class Log {
     return string(with: dateFormatter)
   }
   
+  // MARK: Thread
+  
+  private static var currentThreadNameIfEnabled : String {
+    guard showCurrentThread else { return "" }
+    return Thread.current
+  }
   
   // MARK: Log file
   
@@ -200,7 +202,7 @@ public final class Log {
   
   // MARK: Main log function
   
-  private static func log(level : Level, message : String, functionName : String, filePath : String, lineNumber : Int, queue : DispatchQueue) {
+  private static func log(level : Level, message : String, functionName : String, filePath : String, lineNumber : Int) {
     guard enabledLevels[level, default: false] else { return }
     queue.async {
       let fileName = filePath.components(separatedBy: "/").last!
@@ -235,22 +237,22 @@ public final class Log {
   /// **VERBOSE**
   /// Use for the most insignificant of messages that should only be logged if we desire to see a very detailed
   /// trace of application operation.
-  public static func v(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, queue : DispatchQueue = queue) {
-    log(level: .verbose, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, queue: queue)
+  public static func v(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
+    log(level: .verbose, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
   }
   
   /// **DEBUG**
   /// Debugging information when diagnosing an issue. These logs are normally intended to be removed when the problem
   /// is confirmed as fixed and tested.
-  public static func d(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, queue : DispatchQueue = queue) {
-    log(level: .debug, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, queue: queue)
+  public static func d(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
+    log(level: .debug, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
   }
   
   /// **INFO**
   /// Useful information, e.g. service start-up, configuration etc. Use sparingly and only when they would be useful
   /// for analysing crash/error reports.
-  public static func i(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, queue : DispatchQueue = queue) {
-    log(level: .info, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, queue: queue)
+  public static func i(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
+    log(level: .info, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
   }
   
   /// **WARNING**
@@ -258,23 +260,23 @@ public final class Log {
   /// user but notified to the team.
   /// Also for uses of deprecated APIs or incorrect uses of APIs.
   /// Other examples: value that is expected to be positive was actually negative, so it was clamped to zero, etc.
-  public static func w(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, queue : DispatchQueue = queue) {
-    log(level: .warning, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, queue: queue)
+  public static func w(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
+    log(level: .warning, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
   }
   
   /// **ERROR**
   /// Errors that mean an operation has failed and we need to cancel it but keep the application or service running.
   /// Usually need user intervention or notification.
   /// Support and development teams should investigate.
-  public static func e(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, queue : DispatchQueue = queue) {
-    log(level: .error, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, queue: queue)
+  public static func e(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
+    log(level: .error, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
   }
   
   /// **FATAL**
   /// Catastrophic failures that mean we need to force-crash the application/service immediately.
   /// Use only when we absolutely cannot continue execution or there is potential for data loss or corruption.
   /// Requires urgent investigation from support and development teams.
-  public static func f(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, queue : DispatchQueue = queue) {
-    log(level: .fatal, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, queue: queue)
+  public static func f(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line) {
+    log(level: .fatal, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber)
   }
 }

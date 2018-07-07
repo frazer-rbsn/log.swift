@@ -33,64 +33,51 @@ final class LogTests: XCTestCase {
   
   func testV() {
     Log.enabledLevels[.verbose] = true
-    let queue = DispatchQueue(label: #function)
-    Log.v("testV", queue: queue)
-    queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    Log.v("testV")
     let logFileString = try! String.init(contentsOfFile: Log.logFilePath, encoding: .utf8)
     XCTAssert(logFileString.contains("\(#function): testV"))
   }
   
   func testD() {
     Log.enabledLevels[.debug] = true
-    let queue = DispatchQueue(label: #function)
-    Log.d("testD", queue: queue)
-    queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    Log.d("testD")
     let logFileString = try! String.init(contentsOfFile: Log.logFilePath, encoding: .utf8)
     XCTAssert(logFileString.contains("\(#function): testD"))
   }
   
   func testI() {
     Log.enabledLevels[.info] = true
-    let queue = DispatchQueue(label: #function)
-    Log.i("testI", queue: queue)
-    queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    Log.i("testI")
     let logFileString = try! String.init(contentsOfFile: Log.logFilePath, encoding: .utf8)
     XCTAssert(logFileString.contains("\(#function): testI"))
   }
   
   func testW() {
     Log.enabledLevels[.warning] = true
-    let queue = DispatchQueue(label: #function)
-    Log.w("testW", queue: queue)
-    queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    Log.w("testW")
     let logFileString = try! String.init(contentsOfFile: Log.logFilePath, encoding: .utf8)
     XCTAssert(logFileString.contains("\(#function): testW"))
   }
   
   func testE() {
     Log.enabledLevels[.error] = true
-    let queue = DispatchQueue(label: #function)
-    Log.e("testE", queue: queue)
-    queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    Log.e("testE")
     let logFileString = try! String.init(contentsOfFile: Log.logFilePath, encoding: .utf8)
     XCTAssert(logFileString.contains("\(#function): testE"))
   }
   
   func testLogWhenLevelDisabled() {
     Log.enabledLevels[.verbose] = false
-    let queue = DispatchQueue(label: #function)
-    Log.v("testV", queue: queue)
-    queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    Log.v("testV")
     XCTAssert(Log.shouldLogToFile)
     XCTAssertThrowsError(try String.init(contentsOfFile: Log.logFilePath, encoding: .utf8))
   }
   
   func testLogToFileDisabled() {
+    Log.showCurrentThread = true
     Log.shouldLogToFile = false
     Log.enabledLevels[.error] = true
-    let queue = DispatchQueue(label: #function)
-    Log.e("testE", queue: queue)
-    queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    Log.e("testE")
     XCTAssertFalse(Log.shouldLogToFile)
     XCTAssertThrowsError(try String.init(contentsOfFile: Log.logFilePath, encoding: .utf8))
   }
@@ -98,20 +85,27 @@ final class LogTests: XCTestCase {
   func testLoggingLocationNil() {
     Log.logFileDirectory = nil
     Log.enabledLevels[.error] = true
-    let queue = DispatchQueue(label: #function)
-    Log.e("testE", queue: queue)
-    queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    Log.e("testE")
     XCTAssertFalse(Log.shouldLogToFile)
     XCTAssertThrowsError(try String.init(contentsOfFile: Log.logFilePath, encoding: .utf8))
+  }
+  
+  func testLogBackgroundThread() {
+    Log.showCurrentThread = true
+    Log.shouldLogToFile = false
+    Log.enabledLevels[.error] = true
+    let queue = DispatchQueue(label: "Banana", qos: .utility, attributes: [])
+    queue.async {
+      Log.e("testE")
+    }
+    queue.sync {}
   }
   
   @available(macOS 10.12, *)
   func testOSLog() {
     Log.setUseOSLogEnabled(osLogSubsystemName: "swift.Log", category: "TEST")
     Log.enabledLevels[.error] = true
-    let queue = DispatchQueue(label: #function)
-    Log.e("testE", queue: queue)
-    queue.sync {} // Issue an empty closure on the queue and wait for it to be executed
+    Log.e("testE")
     let logFileString = try! String.init(contentsOfFile: Log.logFilePath, encoding: .utf8)
     XCTAssert(logFileString.contains("\(#function): testE"))
   }

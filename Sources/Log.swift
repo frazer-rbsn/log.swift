@@ -128,30 +128,43 @@ public final class Log {
     return string(with: dateFormatter)
   }
   
+  
   // MARK: Thread
   
   private static var currentThreadNameIfEnabled : String {
     guard showCurrentThread else { return "" }
-    return Thread.current
+    let curr = Thread.current
+    if curr.isMainThread {
+      return " MainThread"
+    } else {
+      if let name = curr.name, !name.isEmpty {
+        return " BGThread:\(name)"
+      } else {
+        let nameC = __dispatch_queue_get_label(nil)
+        if let name = String(cString: nameC, encoding: .utf8) {
+          return " DispatchQueue:\(name)"
+        } else {
+          return " \(curr)"
+        }
+      }
+    }
   }
+  
   
   // MARK: Log file
-  
-  private static let fileManager = FileManager.default
-  
-  private static var logFileName : String {
-    return "LogFile-\(Log.dateString).txt"
-  }
   
   static var logFilePath : String {
     guard let logFileDirectory = logFileDirectory else { return "" }
     return logFileDirectory.appendingPathComponent(logFileName, isDirectory: false).path
   }
   
-  private static func disableLoggingToFileBecauseOfError() {
-    shouldLogToFile = false
-    Log.w("`shouldLogToFile` has now been set to `false` due to an error.")
+  private static var logFileName : String {
+    return "LogFile-\(Log.dateString).txt"
   }
+  
+  private static let fileManager = FileManager.default
+  
+  private static let fileWriteQueue = DispatchQueue(label: "Log.swift.fileWriteQueue")
   
   private static func ensureLogFileExists(messageData : Data, onExists : () -> ()) {
     if fileManager.fileExists(atPath: logFilePath) {
@@ -183,20 +196,28 @@ public final class Log {
     }
   }
   
+  private static func disableLoggingToFileBecauseOfError() {
+    shouldLogToFile = false
+    Log.w("`shouldLogToFile` has now been set to `false` due to an error.")
+  }
+  
   private static func logToFile(_ message : String) {
     guard shouldLogToFile else { return }
-    let messageWithReturn = "\(message)\n"
-    guard let messageData = messageWithReturn.data(using: .utf8) else { return }
-    ensureLogFileExists(messageData: messageData, onExists: {
-      guard let fileHandle = FileHandle.init(forUpdatingAtPath: logFilePath) else {
-        disableLoggingToFileBecauseOfError()
-        Log.e("FileHandle init failed. Log file path: \(logFilePath)")
-        return
-      }
-      fileHandle.seekToEndOfFile()
-      fileHandle.write(messageData)
-      fileHandle.closeFile()
-    })
+    let q = DispatchQueue(label: "Log.swift.fileWriteQueue")
+    q.sync {
+      let messageWithReturn = "\(message)\n"
+      guard let messageData = messageWithReturn.data(using: .utf8) else { return }
+      ensureLogFileExists(messageData: messageData, onExists: {
+        guard let fileHandle = FileHandle.init(forUpdatingAtPath: logFilePath) else {
+          disableLoggingToFileBecauseOfError()
+          Log.e("FileHandle init failed. Log file path: \(logFilePath)")
+          return
+        }
+        fileHandle.seekToEndOfFile()
+        fileHandle.write(messageData)
+        fileHandle.closeFile()
+      })
+    }
   }
   
   
@@ -204,18 +225,16 @@ public final class Log {
   
   private static func log(level : Level, message : String, functionName : String, filePath : String, lineNumber : Int) {
     guard enabledLevels[level, default: false] else { return }
-    queue.async {
-      let fileName = filePath.components(separatedBy: "/").last!
-      let printMessage = "\(timestampStringIfEnabled) \(emojiIfEnabled(for: level))[\(level.rawValue.uppercased())] \(fileName) \(lineNumber) \(functionName): \(message)"
-      if #available(macOS 10.12, *), let osLog = osLog {
-        os_log("%@[%@] %@ %d %@: %@", log: osLog, type: osLogType(for: level), emojiIfEnabled(for: level), level.rawValue.uppercased(), fileName, lineNumber, functionName, message)
-      } else {
-        print(printMessage)
-      }
-      logToFile(printMessage)
-      if level == .fatal {
-        fatalError(message)
-      }
+    let fileName = filePath.components(separatedBy: "/").last!
+    let printMessage = "\(timestampStringIfEnabled) \(emojiIfEnabled(for: level))[\(level.rawValue.uppercased())]\(currentThreadNameIfEnabled) \(fileName) \(lineNumber) \(functionName): \(message)"
+    if #available(macOS 10.12, *), let osLog = osLog {
+      os_log("%@[%@] %@ %d %@: %@", log: osLog, type: osLogType(for: level), emojiIfEnabled(for: level), level.rawValue.uppercased(), fileName, lineNumber, functionName, message)
+    } else {
+      print(printMessage)
+    }
+    logToFile(printMessage)
+    if level == .fatal {
+      fatalError(message)
     }
   }
   

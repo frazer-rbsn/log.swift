@@ -12,18 +12,18 @@ final class LogTests: XCTestCase {
   // Called before every test
   override func setUp() {
     super.setUp()
-    Log.shouldLogToFile = true
+    Log.default.shouldLogToFile = true
     if #available(macOS 10.12, *) {
-      Log.setUseOSLogDisabled()
+      Log.default.setUseOSLogDisabled()
     }
     let url = try! FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-    Log.logFileDirectory = url.appendingPathComponent("Log.swift/logs")
+    Log.default.logFileDirectory = url.appendingPathComponent("Log.swift/logs")
   }
   
   // Called after every test
   override func tearDown() {
     super.tearDown()
-    guard let logFileDirectory = Log.logFileDirectory else { return }
+    guard let logFileDirectory = Log.default.logFileDirectory else { return }
     print("Removing test log file...")
     try? FileManager.default.removeItem(atPath: logFileDirectory.path)
   }
@@ -32,68 +32,68 @@ final class LogTests: XCTestCase {
   // MARK: - Tests
   
   func testV() {
-    Log.enabledLevels[.verbose] = true
+    Log.default.enabledLevels[.verbose] = true
     Log.v("testV")
-    let logFileString = try! String.init(contentsOfFile: Log.logFilePath, encoding: .utf8)
+    let logFileString = try! String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8)
     XCTAssert(logFileString.contains("\(#function): testV"))
   }
   
   func testD() {
-    Log.enabledLevels[.debug] = true
+    Log.default.enabledLevels[.debug] = true
     Log.d("testD")
-    let logFileString = try! String.init(contentsOfFile: Log.logFilePath, encoding: .utf8)
+    let logFileString = try! String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8)
     XCTAssert(logFileString.contains("\(#function): testD"))
   }
   
   func testI() {
-    Log.enabledLevels[.info] = true
+    Log.default.enabledLevels[.info] = true
     Log.i("testI")
-    let logFileString = try! String.init(contentsOfFile: Log.logFilePath, encoding: .utf8)
+    let logFileString = try! String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8)
     XCTAssert(logFileString.contains("\(#function): testI"))
   }
   
   func testW() {
-    Log.enabledLevels[.warning] = true
+    Log.default.enabledLevels[.warning] = true
     Log.w("testW")
-    let logFileString = try! String.init(contentsOfFile: Log.logFilePath, encoding: .utf8)
+    let logFileString = try! String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8)
     XCTAssert(logFileString.contains("\(#function): testW"))
   }
   
   func testE() {
-    Log.enabledLevels[.error] = true
+    Log.default.enabledLevels[.error] = true
     Log.e("testE")
-    let logFileString = try! String.init(contentsOfFile: Log.logFilePath, encoding: .utf8)
+    let logFileString = try! String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8)
     XCTAssert(logFileString.contains("\(#function): testE"))
   }
   
   func testLogWhenLevelDisabled() {
-    Log.enabledLevels[.verbose] = false
+    Log.default.enabledLevels[.verbose] = false
     Log.v("testV")
-    XCTAssert(Log.shouldLogToFile)
-    XCTAssertThrowsError(try String.init(contentsOfFile: Log.logFilePath, encoding: .utf8))
+    XCTAssert(Log.default.shouldLogToFile)
+    XCTAssertThrowsError(try String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8))
   }
   
   func testLogToFileDisabled() {
-    Log.showCurrentThread = true
-    Log.shouldLogToFile = false
-    Log.enabledLevels[.error] = true
+    Log.default.showCurrentThread = true
+    Log.default.shouldLogToFile = false
+    Log.default.enabledLevels[.error] = true
     Log.e("testE")
-    XCTAssertFalse(Log.shouldLogToFile)
-    XCTAssertThrowsError(try String.init(contentsOfFile: Log.logFilePath, encoding: .utf8))
+    XCTAssertFalse(Log.default.shouldLogToFile)
+    XCTAssertThrowsError(try String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8))
   }
   
   func testLoggingLocationNil() {
-    Log.logFileDirectory = nil
-    Log.enabledLevels[.error] = true
+    Log.default.logFileDirectory = nil
+    Log.default.enabledLevels[.error] = true
     Log.e("testE")
-    XCTAssertFalse(Log.shouldLogToFile)
-    XCTAssertThrowsError(try String.init(contentsOfFile: Log.logFilePath, encoding: .utf8))
+    XCTAssertFalse(Log.default.shouldLogToFile)
+    XCTAssertThrowsError(try String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8))
   }
   
   func testLogBackgroundThread() {
-    Log.showCurrentThread = true
-    Log.shouldLogToFile = false
-    Log.enabledLevels[.error] = true
+    Log.default.showCurrentThread = true
+    Log.default.shouldLogToFile = false
+    Log.default.enabledLevels[.error] = true
     let queue = DispatchQueue(label: "Banana", qos: .utility, attributes: [])
     queue.async {
       Log.e("testE")
@@ -101,12 +101,24 @@ final class LogTests: XCTestCase {
     queue.sync {}
   }
   
+  func testCreateNewLog() {
+    let newLog = Log()
+    newLog.showCurrentThread = true
+    newLog.shouldLogToFile = false
+    newLog.enabledLevels[.error] = true
+    let queue = DispatchQueue(label: "Banana", qos: .utility, attributes: [])
+    queue.async {
+      newLog.e("testE")
+    }
+    queue.sync {}
+  }
+  
   @available(macOS 10.12, *)
   func testOSLog() {
-    Log.setUseOSLogEnabled(osLogSubsystemName: "swift.Log", category: "TEST")
-    Log.enabledLevels[.error] = true
+    Log.default.setUseOSLogEnabled(osLogSubsystemName: "swift.Log", category: "TEST")
+    Log.default.enabledLevels[.error] = true
     Log.e("testE")
-    let logFileString = try! String.init(contentsOfFile: Log.logFilePath, encoding: .utf8)
+    let logFileString = try! String.init(contentsOfFile: Log.default.logFilePath, encoding: .utf8)
     XCTAssert(logFileString.contains("\(#function): testE"))
   }
   

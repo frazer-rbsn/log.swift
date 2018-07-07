@@ -23,9 +23,9 @@ final class LogTests: XCTestCase {
   // Called after every test
   override func tearDown() {
     super.tearDown()
-    guard Log.logFileDirectory != nil else { return }
+    guard let logFileDirectory = Log.logFileDirectory else { return }
     print("Removing test log file...")
-    try? FileManager.default.removeItem(atPath: Log.logFileDirectory.path)
+    try? FileManager.default.removeItem(atPath: logFileDirectory.path)
   }
   
   

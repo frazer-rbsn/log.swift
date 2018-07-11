@@ -2,17 +2,19 @@
 
 [![Travis build status](https://travis-ci.org/frazer-rbsn/Log.swift.svg?branch=master)](https://travis-ci.org/frazer-rbsn/Log.swift)
 
-Be gone, `print()` statements! A simple *static* logging class in Swift, with an API based on Android's `Log`. 
+Be gone, `print()` statements! Log.swift is a simple logging class ith an API based on Android's `Log`. 
 
 * easy configuration
-* prints file name, line number and function name
+* prints file name, line number, function name
+* prints current thread (optional)
 * simple timestamps (optional)
 * emoji (optional)
 * output to log file -- please set `logFileLocation` and `shouldLogToFile` to `true`
 * can output using `print()` or `os_log()` (macOS 10.12 or newer only)
 
+
 #### How to use:
-Log is a static class - it is not instantiable and is intended to be accessible from anywhere.
+Log has static log functions that use a private static instance, so you don't need to instantiate a `Log` object to use it, but you can if you wish.
 
 ```swift
 Log.e("A really bad thing happened!")
@@ -21,6 +23,18 @@ outputs:
 ```
 14:19:30 ❌ [ERROR] Foo.swift 67 buggyFunction(): A really bad thing happened!
 ```
+
+Likewise:
+
+```swift
+let eventLogger = Log()
+eventLogger.e("A really bad thing happened!")
+```
+outputs:
+```
+14:19:30 ❌ [ERROR] Foo.swift 67 buggyFunction(): A really bad thing happened!
+```
+
 
 #### Log levels:
 

@@ -1,12 +1,33 @@
 import Foundation
 import os.log
 
+public struct LoggerID : Hashable, Equatable, RawRepresentable {
+
+  public typealias RawValue = String
+
+  public let rawValue: LoggerID.RawValue
+
+  public init(rawValue: LoggerID.RawValue) {
+    self.rawValue = rawValue
+  }
+
+  public init(_ rawValue: LoggerID.RawValue) {
+    self.rawValue = rawValue
+  }
+}
+
+extension LoggerID {
+  static let `default` = LoggerID("default")
+}
+
 public final class Log {
   
-  public init() {}
+  public init(identifer : LoggerID) {
+    self.logIdentifier = identifer
+  }
   
   /// A static instance of `Log`. Used when calling static log functions.
-  public static let `default` = Log()
+  public static let `default` = Log(identifer: .default)
 
   //
   // MARK: - Configuration
@@ -34,7 +55,7 @@ public final class Log {
 
   /// Used to identify this log's subsystem identifier.
   /// Used in the LogFile name.
-  public var logIdentifier = ""
+  public let logIdentifier : LoggerID
   
   // MARK: Levels
   
@@ -67,7 +88,36 @@ public final class Log {
 
   private var osLog : OSLog?
   
-  
+
+  // MARK: Child loggers
+
+  private var childLoggers : [LoggerID : Log] = [:]
+
+  private var parentLogger : Log?
+
+  public func addChildLogger(_ logger : Log) {
+    logger.parentLogger = self
+    childLoggers[logger.logIdentifier] = logger
+  }
+
+  public func childLogger(id : LoggerID) -> Log? {
+    return _childLogger(id, childLoggers)
+  }
+
+  private func _childLogger(_ id : LoggerID, _ loggers : [LoggerID : Log]) -> Log? {
+    if let logger = loggers[id] {
+      return logger
+    }
+    for logger in loggers.values {
+      return _childLogger(id, logger.childLoggers)
+    }
+    return nil
+  }
+
+  public func allChildLoggers() -> [Log] {
+    return [] // TODO:
+  }
+
   //
   // MARK: - Private functions
   //
@@ -218,8 +268,19 @@ public final class Log {
   
   // MARK: Main log function
   
-  private func log(level : Level, message : String, functionName : String, filePath : String, lineNumber : Int, logFileWriteQueue : DispatchQueue?) {
+  private func log(level : Level,
+                   message : String,
+                   functionName : String,
+                   filePath : String,
+                   lineNumber : Int,
+                   logFileWriteQueue : DispatchQueue?) {
     guard enabledLevels[level, default: false] else { return }
+    parentLogger?.log(level: level,
+                      message: message,
+                      functionName: functionName,
+                      filePath: filePath,
+                      lineNumber: lineNumber,
+                      logFileWriteQueue: logFileWriteQueue)
     let fileName = filePath.components(separatedBy: "/").last!
     let printMessage = "\(timestampStringIfEnabled) \(emojiIfEnabled(for: level))[\(level.rawValue.uppercased())]\(currentThreadNameIfEnabled) \(fileName) \(lineNumber) \(functionName): \(message)"
     if #available(macOS 10.12, *), let osLog = osLog {

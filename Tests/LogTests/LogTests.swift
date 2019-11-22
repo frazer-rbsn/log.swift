@@ -1,10 +1,13 @@
 import XCTest
 @testable import Log
 
+extension LoggerID {
+  static let test = LoggerID("test")
+}
 
 final class LogTests: XCTestCase {
   
-  private var log = Log()
+  private var log = Log(identifer: .test)
   
   // Called once before all tests are run
   override class func setUp() {
@@ -14,7 +17,7 @@ final class LogTests: XCTestCase {
   // Called before every test
   override func setUp() {
     super.setUp()
-    self.log = Log()
+    self.log = Log(identifer: .test)
     log.shouldLogToFile = true
     if #available(macOS 10.12, *) {
       log.setUseOSLogDisabled()

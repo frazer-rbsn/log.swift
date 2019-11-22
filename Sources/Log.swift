@@ -1,21 +1,17 @@
 import Foundation
 import os.log
 
-/// A static class wrapper around `print()` and `os_log()` for simple logging.
 public final class Log {
   
   public init() {}
   
   /// A static instance of `Log`. Used when calling static log functions.
   public static let `default` = Log()
-  
-  
+
   //
   // MARK: - Configuration
   //
-  
-  // MARK: Optional functionality
-  
+
   /// Emoji can be used for making certain log levels stand out.
   /// - Recommended setting: `true`.
   public var showEmoji = true
@@ -35,7 +31,10 @@ public final class Log {
   /// The directory in which the log file will be created.
   /// If you want to enable logging to a file, set the desired location here.
   public var logFileDirectory : URL?
-  
+
+  /// Used to identify this log's subsystem identifier.
+  /// Used in the LogFile name.
+  public var logIdentifier = ""
   
   // MARK: Levels
   
@@ -65,8 +64,7 @@ public final class Log {
   public func setUseOSLogDisabled() {
     osLog = nil
   }
-  
-  //@available(macOS 10.12, *)
+
   private var osLog : OSLog?
   
   
@@ -157,7 +155,7 @@ public final class Log {
   }
   
   private var logFileName : String {
-    return "LogFile-\(dateString).txt"
+    return "LogFile-\(logIdentifier)-\(dateString).txt"
   }
   
   private let fileManager = FileManager.default
@@ -330,15 +328,17 @@ public final class Log {
   /// Catastrophic failures that mean we need to force-crash the application/service immediately.
   /// Use only when we absolutely cannot continue execution or there is potential for data loss or corruption.
   /// Requires urgent investigation from support and development teams.
-  public func f(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) {
+  public func f(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) -> Never {
     log(level: .fatal, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, logFileWriteQueue: logFileWriteQueue)
+    fatalError() // Enables our return type to be Never. Actual fatalError call can be found in log function.
   }
   
   /// **FATAL**
   /// Catastrophic failures that mean we need to force-crash the application/service immediately.
   /// Use only when we absolutely cannot continue execution or there is potential for data loss or corruption.
   /// Requires urgent investigation from support and development teams.
-  public static func f(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) {
+  public static func f(_ message : String, functionName : String = #function, filePath : String = #file, lineNumber : Int = #line, logFileWriteQueue : DispatchQueue? = nil) -> Never {
     self.default.log(level: .fatal, message: message, functionName: functionName, filePath: filePath, lineNumber: lineNumber, logFileWriteQueue: logFileWriteQueue)
+    fatalError() // Enables our return type to be Never. Actual fatalError call can be found in log function.
   }
 }

@@ -1,12 +1,7 @@
 os: osx
-osx_image: xcode9.3
+osx_image: xcode12.4
 
 script:
- - echo "Testing on default macOS target version..."
  - swift test
- - echo "Testing on target version macOS 10.12..."
- - swift test -Xswiftc "-target" -Xswiftc "x86_64-apple-macosx10.12"
- # - swift package generate-xcodeproj
- # - xcodebuild -scheme Log-Package -sdk macosx test
 notifications:
   email: false

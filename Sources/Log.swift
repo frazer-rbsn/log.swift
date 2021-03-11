@@ -1,41 +1,24 @@
 import Foundation
 import os.log
 
-public struct LoggerID : Hashable, Equatable, RawRepresentable {
-
-  public typealias RawValue = String
-
-  public let rawValue: LoggerID.RawValue
-
-  public init(rawValue: LoggerID.RawValue) {
-    self.rawValue = rawValue
-  }
-
-  public init(_ rawValue: LoggerID.RawValue) {
-    self.rawValue = rawValue
-  }
-}
-
-extension LoggerID {
-  static let `default` = LoggerID("default")
-}
-
 public final class Log {
-  
-  public init(identifer : LoggerID) {
+
+  public typealias LoggerID = String
+
+  public init(identifer: LoggerID) {
     self.logIdentifier = identifer
   }
   
   /// A static instance of `Log`. Used when calling static log functions.
-  public static let `default` = Log(identifer: .default)
+  public static let `default` = Log(identifer: "default")
 
   //
   // MARK: - Configuration
   //
 
-  /// Emoji can be used for making certain log levels stand out.
+  /// Shows a symbol before `warn` and `error` logs.
   /// - Recommended setting: `true`.
-  public var showEmoji = true
+  public var showSymbol = true
   
   /// Show a timestamp of the local time on each log message.
   /// - Recommended setting: `false` for debugging, `true` for production logging.
@@ -87,49 +70,18 @@ public final class Log {
   }
 
   private var osLog : OSLog?
-  
-
-  // MARK: Child loggers
-
-  private var childLoggers : [LoggerID : Log] = [:]
-
-  private var parentLogger : Log?
-
-  public func addChildLogger(_ logger : Log) {
-    logger.parentLogger = self
-    childLoggers[logger.logIdentifier] = logger
-  }
-
-  public func childLogger(id : LoggerID) -> Log? {
-    return _childLogger(id, childLoggers)
-  }
-
-  private func _childLogger(_ id : LoggerID, _ loggers : [LoggerID : Log]) -> Log? {
-    if let logger = loggers[id] {
-      return logger
-    }
-    for logger in loggers.values {
-      return _childLogger(id, logger.childLoggers)
-    }
-    return nil
-  }
-
-  public func allChildLoggers() -> [Log] {
-    return [] // TODO:
-  }
 
   //
   // MARK: - Private functions
   //
   
-  // MARK: Emoji
+  // MARK: Symbol
   
-  private func emojiIfEnabled(for level : Level) -> String {
-    guard showEmoji else { return "" }
+  private func symbolIfEnabled(for level : Level) -> String {
+    guard showSymbol else { return "" }
     switch level {
-    case .warning: return "⚠️ "
-    case .error: return "❌ "
-    case .fatal: return "☠️ "
+    case .warning: return "􀇾 "
+    case .error: return "􀃰 "
     default: return ""
     }
   }
@@ -184,7 +136,7 @@ public final class Log {
       return " MainThread"
     } else {
       if let name = curr.name, !name.isEmpty {
-        return " BGThread:\(name)"
+        return " BackgroundThread:\(name)"
       } else {
         let nameC = __dispatch_queue_get_label(nil)
         if let name = String(cString: nameC, encoding: .utf8) {
@@ -275,16 +227,10 @@ public final class Log {
                    lineNumber : Int,
                    logFileWriteQueue : DispatchQueue?) {
     guard enabledLevels[level, default: false] else { return }
-    parentLogger?.log(level: level,
-                      message: message,
-                      functionName: functionName,
-                      filePath: filePath,
-                      lineNumber: lineNumber,
-                      logFileWriteQueue: logFileWriteQueue)
     let fileName = filePath.components(separatedBy: "/").last!
-    let printMessage = "\(timestampStringIfEnabled) \(emojiIfEnabled(for: level))[\(level.rawValue.uppercased())]\(currentThreadNameIfEnabled) \(fileName) \(lineNumber) \(functionName): \(message)"
+    let printMessage = "\(timestampStringIfEnabled) \(symbolIfEnabled(for: level))[\(level.rawValue.uppercased())]\(currentThreadNameIfEnabled) \(fileName) \(lineNumber) \(functionName): \(message)"
     if #available(macOS 10.12, *), let osLog = osLog {
-      os_log("%@[%@] %@ %d %@: %@", log: osLog, type: osLogType(for: level), emojiIfEnabled(for: level), level.rawValue.uppercased(), fileName, lineNumber, functionName, message)
+      os_log("%@[%@] %@ %d %@: %@", log: osLog, type: osLogType(for: level), symbolIfEnabled(for: level), level.rawValue.uppercased(), fileName, lineNumber, functionName, message)
     } else {
       print(printMessage)
     }

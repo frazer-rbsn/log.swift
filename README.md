@@ -2,7 +2,7 @@
 
 [![Travis build status](https://travis-ci.org/frazer-rbsn/Log.swift.svg?branch=master)](https://travis-ci.org/frazer-rbsn/Log.swift)
 
-Log.swift is a simple logging class with an API based on Android's `Log`. 
+`Log.swift` is a simple logging class with an API based on Android's `Log`. It is not a fully-featured logging framework, instead it is intended as a basic, useful replacement for `print()` statements to use when debugging your projects.
 
 * easy configuration
 * prints file name, line number, function name
